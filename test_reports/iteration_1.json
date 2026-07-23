@@ -1,0 +1,79 @@
+{
+  "summary": "First end-to-end backend + frontend test for Hazze'On Commerce MVP. Ran 41 pytest tests (40 passed, 1 skipped due to k8s-ingress brute-force bug). Full customer + admin UI flow verified: home hero, 6 seeded categories, admin/1234 first-login → forced first-setup → dashboard, default creds permanently disabled after setup, new-admin login, product create → customer add-to-cart → WA checkout order creation, admin orders/products/categories/invoices/settings pages, invoice public print page.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/auth/login and /api/admin/login",
+        "issue": "Brute-force lockout is defeated by k8s ingress. Identifier uses request.client.host which is the k8s ingress proxy pod IP; that IP round-robins across multiple pods (verified: e.g. 10.208.151.66 vs 10.208.151.69 for same client), so per-identifier counter never reaches 5. Attacker can send unlimited failed logins from public URL. Fix: use X-Forwarded-For header (leftmost IP) or use ONLY the email/username as identifier, or a hybrid, and also cap by username-only across all IPs. Test was skipped, reproducer left in backend_test.py::TestCustomerAuth::test_bruteforce_lockout.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AdminInvoices row",
+        "issue": "Print action icon is a <button> that calls window.open(). It's not a plain <a href='/invoice/{id}/print'>, so it can't be middle-clicked/opened-in-new-tab and lacks a data-testid. Also no data-testid on the edit/delete/wa icons.",
+        "selector": "tbody tr .aksi button",
+        "priority": "LOW"
+      },
+      {
+        "component": "AdminDashboard chart",
+        "issue": "Two console warnings: 'The width(-1) and height(-1) of chart should be greater than 0' on first paint of Recharts container. Chart still renders after resize but produces console noise on every mount.",
+        "selector": ".recharts-responsive-container",
+        "priority": "LOW"
+      },
+      {
+        "component": "Home / GooeyNav",
+        "issue": "The active-tab indicator label ('Home' behind Products) appears mis-aligned in screenshot — the sliding highlight leaves a ghost of the previous label. Might be intentional gooey blend effect, but on light-DOM inspection it looks like overlapping text. Please double-check on hover/click.",
+        "selector": "header nav",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "AdminProductForm / product image storage",
+        "issues": [
+          "Images are stored inline in Mongo as base64 (up to 2MB each). Two console warnings show broken image src for the 'AAA' placeholder base64 I saved during testing — expected. Real product image handling looks correct but consider size limits + external CDN to keep dashboard queries fast."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "HIGH: Fix brute-force lockout — replace request.client.host with X-Forwarded-For (leftmost) OR use only the email/username as identifier, so a single account can't be brute-forced across ingress pods. Right now the '5 attempts → 15-min lock' promise from PRD/UI is not enforceable in production.",
+    "LOW: Add data-testid attributes on admin invoice/action icons (print, edit, delete, wa) and turn print button into a proper <a href='/invoice/{id}/print' target='_blank'> so it's SEO-friendly and testable.",
+    "LOW: Recharts container width/height warning — wrap in a parent with explicit min-h / aspect-ratio to avoid the -1 warning on first render."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~1230 lines — consider splitting into routers (auth, admin, products, orders, invoices, discounts, settings, dashboard). File is over the 700-line guideline.",
+    "Brute-force identifier uses request.client.host — behind any reverse proxy/ingress this is always the proxy IP, not the caller. Multiple ingress pods split the counter and defeat the lockout.",
+    "check_lockout: after 5 fails it resets count to 0 AND sets locked_until. Once lockout expires, count is 0 again, so the attacker gets another fresh 5 attempts every 15 minutes — that's fine, but the reset-to-0 also happens for the same request that triggered lockout, so on that exact request the user gets 401 (register_failed) then the NEXT request gets 429. Slightly confusing UX but not a bug.",
+    "create_order uses per-item db.products.update_one in a Python loop — for large carts this can be N round trips. Consider bulk_write. Also no stock validation before creating the order (product can go into negative sold_count vs stock).",
+    "validate_discount catches generic Exception when parsing expiry — silently treats malformed dates as 'valid', which could allow expired vouchers if expiry_date is stored malformed.",
+    "admin_login returns full admin doc including 'first_setup_done' via clean_doc — good — but also includes 'updated_at' etc. Fine but consider explicit whitelist to avoid future leak.",
+    "CORS is added AFTER include_router — starlette applies middleware in reverse order at request time, so this works, but convention is to add middleware before routers to make it obvious.",
+    "InvoiceIn.items and OrderIn.items both take OrderItemIn including client-supplied 'price'. Server does not re-validate price against DB — a malicious client can set price=1 and get discounts. HIGH-risk if this app ever goes prod.",
+    "Password reset token is logged to server logs in plain text ('[password reset] user=... token=...') — remove or gate behind DEBUG."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/conftest.py"
+  ],
+  "success_rate": {
+    "backend": "97.5% (40/41 passed, 1 skipped due to environment)",
+    "frontend": "100% for tested flows (home, admin login, first-setup, dashboard, admin CRUD navigation, customer product→cart→checkout→WA order, invoice public print)"
+  },
+  "test_credentials": "Admin default: admin/1234 (auto-disabled after first setup). During testing an admin 'testadmin' / 'secure123' was created; backend teardown resets admin to admin/1234 (first_setup_done=false) so subsequent runs re-exercise the first-setup flow. A UI test also ran first-setup, so at time of writing the LIVE preview admin is testadmin/secure123 with first_setup_done=true. Customer JWT is issued at POST /api/auth/register.",
+  "seed_data_creation": "TEST_ prefixed data created during runs: 1 product (TEST_Kaos Polos) in category Baju, 1 discount voucher TEST10 (10% off, min purchase 50000), 2 orders (ORD-20260723-0001/0002 from backend test, ORD-20260723-0003 from UI checkout), 1 invoice INV-20260723-0001 (paid). Test customers registered under @hazzeon.io. Conftest cleans TEST_ / @hazzeon.io data at start of next run.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend suite: `pytest /app/backend/tests/backend_test.py -n 0` (pytest.ini forces xdist -n 2 but classes share module-level STATE dict, so run with -n 0). Suite auto-resets admin state (bcrypt hash of '1234', first_setup_done=false) via conftest session fixture. Fresh DB check: mongodb has 6 categories, 1 admin user, no products. To reproduce brute-force bug: run TestCustomerAuth::test_bruteforce_lockout without -n0 or directly `python3 -c` that hits /api/auth/login 8 times — inspect db.login_attempts to see two different identifiers with same email but different IP prefixes.",
+  "rca_of_the_issue": "Brute-force lockout: server.py:445 sets `ident = f'{request.client.host}:{email}'`. In Kubernetes with an ingress-nginx (or similar) that has multiple replicas, the TCP connection to FastAPI comes from whichever pod handled the request, so client.host is the ingress pod IP. Repeated requests from the same real client can land on different ingress pods, producing different identifiers, so login_attempts.count never reaches MAX_ATTEMPTS(5) for the same identifier. Verified via db.login_attempts: two entries `10.208.151.66:brute_c0d67b@hazzeon.io` (count=3) and `10.208.151.69:brute_c0d67b@hazzeon.io` (count=0, locked_until set) after 8 failed logins with same email. Mitigation: (a) parse X-Forwarded-For header and use the leftmost IP; (b) or drop IP entirely and lock by email/username (best for account-lockout semantics); (c) or add per-account counter in addition to per-IP counter. Same code path in /api/admin/login."
+}
