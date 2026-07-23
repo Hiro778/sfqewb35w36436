@@ -1,0 +1,143 @@
+{
+  "project_name": "Hazze'On Commerce",
+  "theme": "Dark Mode (Luxury SaaS Aesthetic)",
+  "typography": {
+    "headings": {
+      "family": "Playfair Display",
+      "weights": [400, 600, 700],
+      "usage": "Hero headers, product titles, major section headings for elegant Indonesian fashion vibe."
+    },
+    "body": {
+      "family": "Outfit",
+      "weights": [300, 400, 500, 600],
+      "usage": "Admin dashboard, product descriptions, UI elements, navigation. Provides a modern geometric contrast to the serif headings."
+    },
+    "scale": {
+      "h1": "text-5xl sm:text-6xl tracking-tight leading-none",
+      "h2": "text-4xl sm:text-5xl tracking-tight",
+      "h3": "text-2xl sm:text-3xl",
+      "body": "text-base leading-relaxed text-zinc-300",
+      "labels": "text-xs tracking-[0.2em] uppercase font-semibold text-zinc-400"
+    }
+  },
+  "colors": {
+    "background": {
+      "default": "#09090b",
+      "surface": "#18181b",
+      "surface_hover": "#27272a"
+    },
+    "primary": {
+      "DEFAULT": "#e4d3b5",
+      "hover": "#d1be9a",
+      "foreground": "#09090b"
+    },
+    "accent": {
+      "DEFAULT": "#2A5CFA",
+      "foreground": "#ffffff"
+    },
+    "text": {
+      "primary": "#fafafa",
+      "secondary": "#a1a1aa",
+      "muted": "#71717a"
+    },
+    "border": {
+      "DEFAULT": "#27272a",
+      "focus": "#e4d3b5"
+    },
+    "status": {
+      "success": "#10b981",
+      "error": "#ef4444",
+      "warning": "#f59e0b"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-zinc-900/60 border border-white/10",
+    "shadows": {
+      "subtle": "shadow-[0_8px_32px_rgba(0,0,0,0.12)]",
+      "glow": "drop-shadow-[0_0_12px_rgba(228,211,181,0.3)]"
+    },
+    "radii": {
+      "card": "rounded-2xl",
+      "button": "rounded-full",
+      "input": "rounded-xl"
+    }
+  },
+  "layouts": {
+    "spacing_system": "Generous spacing. p-6 or p-8 inside cards, gap-8 to gap-12 between sections.",
+    "customer_home": "Full bleed hero image with bg-black/50 overlay. Bento grid for categories (grid-cols-1 md:grid-cols-12, wide gaps).",
+    "product_listing": "Responsive grid: grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6. Minimalist cards with subtle hover lift (-translate-y-1).",
+    "product_detail": "Two-column layout (lg:grid-cols-2). Left: Framer Motion Stack gallery. Right: Product info, Add to Cart / WA CTA.",
+    "admin_dashboard": "Sidebar layout. Dense data grid (grid-cols-1 md:grid-cols-3 gap-6). Recharts wrappers using rounded-2xl.",
+    "admin_products_crud": "Card-based form sections. Table layout for list view using Shadcn Table."
+  },
+  "components": {
+    "buttons": {
+      "primary": "rounded-full bg-[#e4d3b5] text-[#09090b] font-medium px-8 py-3 transition-transform active:scale-95",
+      "secondary": "rounded-full bg-[#18181b] text-[#e4d3b5] border border-white/10 px-8 py-3 hover:bg-[#27272a] transition-colors"
+    },
+    "inputs": "bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#e4d3b5] focus:border-transparent text-white",
+    "click_spark": {
+      "usage": "Wrap all primary CTAs (Add to Cart, Buy Now, Checkout WA).",
+      "color": "#e4d3b5"
+    },
+    "dock": {
+      "usage": "Customer mobile view only (hidden md:).",
+      "styling": "Fixed bottom-4 left-1/2 -translate-x-1/2 backdrop-blur-xl bg-zinc-900/80 border border-white/10 rounded-full px-6 py-3 flex gap-6"
+    },
+    "gooey_nav": {
+      "usage": "Desktop main navigation for customer site.",
+      "styling": "Sticky top-0 z-50 pt-4 px-8. Links have gooey fluid hover background using Framer Motion SVG filters."
+    },
+    "stack": {
+      "usage": "Product details page when >= 3 images.",
+      "styling": "Absolute positioned cards with random rotation (-5deg to 5deg). Click sends front card to back using layoutId or z-index animation."
+    }
+  },
+  "motion": {
+    "page_transitions": "initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut' }}",
+    "hover_states": "scale 1.02 on cards, bg color transitions duration-200",
+    "stagger_reveals": "transition={{ staggerChildren: 0.1 }} for product grids and list items."
+  },
+  "accessibility": {
+    "contrast": "Ensure primary text meets APCA guidelines against background. Buttons must have minimum 3:1 contrast.",
+    "aria": "Use aria-labels for icon-only buttons (like Dock items).",
+    "motion": "Respect prefers-reduced-motion media query by disabling Stack and GooeyNav effects if set."
+  },
+  "testing": {
+    "guidelines": "All interactive and key informational elements MUST include a data-testid attribute.",
+    "examples": [
+      "data-testid='add-to-cart-button'",
+      "data-testid='wa-checkout-button'",
+      "data-testid='admin-login-form'",
+      "data-testid='product-card-123'"
+    ]
+  },
+  "media": {
+    "hero_image": "https://images.unsplash.com/photo-1720022785516-9653ead7180c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxmYXNoaW9uJTIwbW9kZWwlMjBkYXJrJTIwYWVzdGhldGljfGVufDB8fHx8MTc4NDgwNDY0Nnww&ixlib=rb-4.1.0&q=85",
+    "empty_cart": "https://images.pexels.com/photos/5556311/pexels-photo-5556311.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "category_jeans": "https://images.pexels.com/photos/1598507/pexels-photo-1598507.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "category_shirts": "https://images.pexels.com/photos/14867670/pexels-photo-14867670.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "category_accessories": "https://images.unsplash.com/photo-1635462684825-3621c1df5403?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBhY2Nlc3NvcmllcyUyMGRhcmt8ZW58MHx8fHwxNzg0ODA0NjQ2fDA&ixlib=rb-4.1.0&q=85"
+  },
+  "instructions_to_main_agent": [
+    "Build a production-ready dark-theme e-commerce store + admin panel using React, FastAPI, MongoDB.",
+    "Strictly avoid 'AI slop' defaults. Do NOT use Inter, generic gradients, or boring centered layouts.",
+    "Implement the 4 required Framer Motion custom components exactly as specified (ClickSpark, Dock, GooeyNav, Stack) in React.",
+    "Use Playfair Display for headings and Outfit for UI body text to create a high-end luxury fashion SaaS vibe.",
+    "DO NOT apply generic `transition-all` classes; use specific transition utility classes (e.g., `transition-colors`, `transition-transform`) to avoid breaking Framer Motion animations.",
+    "Ensure 'data-testid' attributes are placed on all interactive elements.",
+    "WhatsApp integration must format the message properly using the template from admin settings (default WA: +6288211118394).",
+    "Admin dashboard Recharts must use the color palette provided here (#e4d3b5, #fafafa).",
+    "Never use completely transparent backgrounds for overlapping navbars or docks; use the specified glassmorphism specs."
+  ],
+  "universal_guidelines_for_main_agent": [
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Use specific properties for transitions (NOT transition: all).",
+    "All interactive elements need hover/focus states.",
+    "Never use placeholder URLs (like via.placeholder.com). Use the provided media URLs.",
+    "Use Lucide React for icons.",
+    "Sonner is required for toast notifications.",
+    "Follow standard Indonesian fashion taxonomy (Baju, Celana, Aksesoris) for seed data."
+  ]
+}
