@@ -18,6 +18,7 @@ import Checkout from "@/pages/customer/Checkout";
 import Login from "@/pages/customer/Login";
 import Register from "@/pages/customer/Register";
 import ForgotPassword from "@/pages/customer/ForgotPassword";
+import ResetPassword from "@/pages/customer/ResetPassword";
 import Profile from "@/pages/customer/Profile";
 import Orders from "@/pages/customer/Orders";
 import InvoicePrint from "@/pages/customer/InvoicePrint";
@@ -66,6 +67,7 @@ export default function App() {
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/register" element={<Register />} />
                                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                                <Route path="/reset-password" element={<ResetPassword />} />
                                 <Route
                                     path="/profile"
                                     element={

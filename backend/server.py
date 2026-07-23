@@ -14,14 +14,17 @@ import bcrypt
 import jwt
 import logging
 import secrets
+import asyncio
+import requests
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Any
 
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, status, Query
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, status, Query, UploadFile, File
+from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
+import resend
 
 
 # ------------------------------------------------------------------
@@ -36,6 +39,19 @@ JWT_ALGORITHM = "HS256"
 ACCESS_TTL_MIN = 60 * 24  # 1 day session
 DEFAULT_ADMIN_USERNAME = "admin"
 DEFAULT_ADMIN_PASSWORD = "1234"
+
+# --- Emergent Object Storage
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+APP_NAME = os.environ.get("APP_NAME", "hazzeon-commerce")
+_storage_key: Optional[str] = None
+
+# --- Resend Email
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "")
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
 
 app = FastAPI(title="Hazze'On Commerce API")
 api = APIRouter(prefix="/api")
@@ -82,6 +98,160 @@ def clean_doc(doc: dict) -> dict:
     doc.pop("_id", None)
     doc.pop("password_hash", None)
     return doc
+
+
+# ------------------------------------------------------------------
+# Object Storage (Emergent)
+# ------------------------------------------------------------------
+def init_storage() -> Optional[str]:
+    """Initialize storage key once. Returns None if EMERGENT_KEY is unset."""
+    global _storage_key
+    if _storage_key:
+        return _storage_key
+    if not EMERGENT_KEY:
+        log.warning("EMERGENT_LLM_KEY not set — storage disabled.")
+        return None
+    try:
+        resp = requests.post(
+            f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30
+        )
+        resp.raise_for_status()
+        _storage_key = resp.json()["storage_key"]
+        log.info("Object storage initialized.")
+        return _storage_key
+    except Exception as e:
+        log.error(f"Storage init failed: {e}")
+        return None
+
+
+def _put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    if not key:
+        raise HTTPException(500, "Object storage tidak tersedia.")
+    resp = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data,
+        timeout=120,
+    )
+    if resp.status_code == 403:
+        # storage_key expired — re-init and retry once
+        globals()["_storage_key"] = None
+        key = init_storage()
+        resp = requests.put(
+            f"{STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key, "Content-Type": content_type},
+            data=data,
+            timeout=120,
+        )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _get_object(path: str) -> tuple[bytes, str]:
+    key = init_storage()
+    if not key:
+        raise HTTPException(500, "Object storage tidak tersedia.")
+    resp = requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key},
+        timeout=60,
+    )
+    if resp.status_code == 403:
+        globals()["_storage_key"] = None
+        key = init_storage()
+        resp = requests.get(
+            f"{STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key},
+            timeout=60,
+        )
+    if resp.status_code == 404:
+        raise HTTPException(404, "File tidak ditemukan")
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+
+MIME_MAP = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "gif": "image/gif",
+    "webp": "image/webp",
+    "svg": "image/svg+xml",
+}
+
+
+# ------------------------------------------------------------------
+# Email (Resend)
+# ------------------------------------------------------------------
+async def send_email_async(to_email: str, subject: str, html: str) -> Optional[str]:
+    if not RESEND_API_KEY:
+        log.warning("RESEND_API_KEY not set — email skipped.")
+        return None
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [to_email],
+            "subject": subject,
+            "html": html,
+        }
+        res = await asyncio.to_thread(resend.Emails.send, params)
+        return (res or {}).get("id")
+    except Exception as e:
+        log.error(f"Email send failed to {to_email}: {e}")
+        return None
+
+
+def _reset_email_html(name: str, link: str) -> str:
+    return f"""
+<!doctype html>
+<html><body style="margin:0;padding:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f5">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0">
+    <tr><td align="center">
+      <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.06)">
+        <tr><td style="padding:32px 40px 8px 40px">
+          <div style="display:inline-block;width:36px;height:36px;background:#e4d3b5;border-radius:999px;color:#09090b;text-align:center;line-height:36px;font-weight:700">H</div>
+          <p style="color:#71717a;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;margin:16px 0 0 0">Hazze&#39;On Commerce</p>
+          <h1 style="font-family:Georgia,serif;font-size:28px;color:#09090b;margin:8px 0 16px 0">Reset Password Anda</h1>
+        </td></tr>
+        <tr><td style="padding:0 40px 24px 40px;color:#3f3f46;font-size:15px;line-height:1.6">
+          Halo <strong>{name}</strong>,<br /><br />
+          Kami menerima permintaan reset password untuk akun Anda. Klik tombol di bawah untuk membuat password baru. Link berlaku <strong>1 jam</strong>.
+        </td></tr>
+        <tr><td align="center" style="padding:0 40px 32px 40px">
+          <a href="{link}" style="display:inline-block;background:#09090b;color:#ffffff;padding:14px 32px;border-radius:999px;text-decoration:none;font-weight:500;font-size:14px">Reset Password</a>
+        </td></tr>
+        <tr><td style="padding:0 40px 32px 40px;color:#71717a;font-size:12px;line-height:1.5;border-top:1px solid #f4f4f5">
+          <br/>Jika tombol tidak berfungsi, salin link berikut:<br/>
+          <a href="{link}" style="color:#71717a;word-break:break-all">{link}</a><br/><br/>
+          Jika Anda tidak meminta reset ini, abaikan email ini — password Anda tidak akan berubah.
+        </td></tr>
+      </table>
+      <p style="color:#a1a1aa;font-size:11px;margin-top:24px">© Hazze&#39;On Commerce</p>
+    </td></tr>
+  </table>
+</body></html>
+"""
+
+
+# ------------------------------------------------------------------
+# Notifications
+# ------------------------------------------------------------------
+async def create_notification(user_id: str, ntype: str, title: str, message: str, link: str = "", meta: dict = None):
+    if not user_id:
+        return
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": ntype,
+        "title": title,
+        "message": message,
+        "link": link,
+        "meta": meta or {},
+        "is_read": False,
+        "created_at": iso(now_utc()),
+    }
+    await db.notifications.insert_one(doc)
 
 
 # ------------------------------------------------------------------
@@ -384,6 +554,11 @@ async def seed_startup():
 @app.on_event("startup")
 async def on_startup():
     await seed_startup()
+    # init object storage (best-effort)
+    try:
+        init_storage()
+    except Exception as e:
+        log.warning(f"storage init warning: {e}")
     # write test credentials memo
     try:
         memdir = Path("/app/memory")
@@ -498,7 +673,12 @@ async def forgot_password(data: ForgotIn):
                 "used": False,
             }
         )
-        # Token is stored in DB; delivery via email should be integrated by ops.
+        link = f"{FRONTEND_URL}/reset-password?token={token}" if FRONTEND_URL else f"/reset-password?token={token}"
+        await send_email_async(
+            user["email"],
+            "Reset Password — Hazze'On Commerce",
+            _reset_email_html(user.get("name") or user["email"], link),
+        )
     return {"ok": True, "message": "Jika email terdaftar, link reset password akan dikirim."}
 
 
@@ -865,7 +1045,25 @@ async def admin_update_order_status(oid: str, body: dict, user: dict = Depends(r
     status_val = body.get("status")
     if status_val not in ["pending", "completed", "cancelled"]:
         raise HTTPException(400, "Status tidak valid")
+    order = await db.orders.find_one({"id": oid})
+    if not order:
+        raise HTTPException(404, "Order tidak ditemukan")
+    prev_status = order.get("status")
     await db.orders.update_one({"id": oid}, {"$set": {"status": status_val}})
+    if order.get("customer_id") and status_val != prev_status:
+        title_map = {
+            "completed": "Pesanan selesai",
+            "cancelled": "Pesanan dibatalkan",
+            "pending": "Pesanan menunggu konfirmasi",
+        }
+        await create_notification(
+            user_id=order["customer_id"],
+            ntype="order_status",
+            title=title_map.get(status_val, f"Status pesanan: {status_val}"),
+            message=f"Pesanan {order['order_number']} sekarang berstatus {status_val}.",
+            link="/orders",
+            meta={"order_number": order["order_number"], "status": status_val},
+        )
     return {"ok": True}
 
 
@@ -933,6 +1131,16 @@ async def create_invoice(data: InvoiceIn, user: dict = Depends(require_admin)):
     await db.invoices.insert_one(doc)
     if data.order_id:
         await db.orders.update_one({"id": data.order_id}, {"$set": {"invoice_id": doc["id"]}})
+        order = await db.orders.find_one({"id": data.order_id})
+        if order and order.get("customer_id"):
+            await create_notification(
+                user_id=order["customer_id"],
+                ntype="invoice_created",
+                title="Invoice tersedia",
+                message=f"Invoice {inv_no} untuk pesanan {order['order_number']} sudah diterbitkan.",
+                link="/orders",
+                meta={"invoice_number": inv_no, "order_number": order["order_number"]},
+            )
     doc.pop("_id", None)
     return doc
 
@@ -1229,6 +1437,82 @@ async def build_wa_message(body: dict):
     )
     from urllib.parse import quote
     return {"wa_url": f"https://wa.me/{wa_number}?text={quote(msg)}", "message": msg}
+
+
+# ==================================================================
+# UPLOADS & FILES
+# ==================================================================
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5MB
+
+
+@api.post("/admin/upload")
+async def admin_upload(file: UploadFile = File(...), user: dict = Depends(require_admin)):
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(400, f"File > {MAX_UPLOAD_BYTES // (1024*1024)}MB")
+    ext = (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else "bin"
+    content_type = MIME_MAP.get(ext, file.content_type or "application/octet-stream")
+    path = f"{APP_NAME}/products/{uuid.uuid4().hex}.{ext}"
+    result = _put_object(path, data, content_type)
+    await db.files.insert_one(
+        {
+            "id": str(uuid.uuid4()),
+            "storage_path": result.get("path", path),
+            "original_filename": file.filename,
+            "content_type": content_type,
+            "size": result.get("size") or len(data),
+            "is_deleted": False,
+            "created_at": iso(now_utc()),
+        }
+    )
+    return {"path": result.get("path", path), "size": result.get("size") or len(data)}
+
+
+@api.get("/files/{path:path}")
+async def serve_file(path: str):
+    # Product images are public; validate path prefix to avoid arbitrary reads.
+    if not path.startswith(f"{APP_NAME}/"):
+        raise HTTPException(400, "Invalid path")
+    rec = await db.files.find_one({"storage_path": path, "is_deleted": False})
+    if not rec:
+        raise HTTPException(404, "File tidak ditemukan")
+    data, content_type = _get_object(path)
+    return Response(
+        content=data,
+        media_type=rec.get("content_type") or content_type,
+        headers={"Cache-Control": "public, max-age=604800, immutable"},
+    )
+
+
+# ==================================================================
+# NOTIFICATIONS
+# ==================================================================
+@api.get("/notifications")
+async def list_notifications(user: dict = Depends(require_customer)):
+    items = (
+        await db.notifications.find({"user_id": user["id"]}, {"_id": 0})
+        .sort("created_at", -1)
+        .limit(50)
+        .to_list(50)
+    )
+    unread = await db.notifications.count_documents({"user_id": user["id"], "is_read": False})
+    return {"items": items, "unread": unread}
+
+
+@api.put("/notifications/{nid}/read")
+async def mark_read(nid: str, user: dict = Depends(require_customer)):
+    await db.notifications.update_one(
+        {"id": nid, "user_id": user["id"]}, {"$set": {"is_read": True}}
+    )
+    return {"ok": True}
+
+
+@api.put("/notifications/read-all")
+async def mark_all_read(user: dict = Depends(require_customer)):
+    await db.notifications.update_many(
+        {"user_id": user["id"], "is_read": False}, {"$set": {"is_read": True}}
+    )
+    return {"ok": True}
 
 
 # ==================================================================

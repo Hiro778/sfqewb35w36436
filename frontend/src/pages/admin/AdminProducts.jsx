@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
-import { api, formatRupiah, formatApiErrorDetail } from "@/lib/api";
+import { api, formatRupiah, formatApiErrorDetail, getFileUrl } from "@/lib/api";
 import { toast } from "sonner";
 
 export default function AdminProducts() {
@@ -103,7 +103,7 @@ export default function AdminProducts() {
                                             <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-900 shrink-0">
                                                 {p.images?.[0] ? (
                                                     <img
-                                                        src={p.images[0]}
+                                                        src={getFileUrl(p.images[0])}
                                                         alt=""
                                                         className="w-full h-full object-cover"
                                                     />

@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { formatRupiah, computeEffectivePrice } from "@/lib/api";
+import { formatRupiah, computeEffectivePrice, getFileUrl } from "@/lib/api";
 
 export default function ProductCard({ product }) {
     const effective = computeEffectivePrice(product);
     const hasDiscount = product.discount_price && product.discount_price < product.price;
     const outOfStock = product.stock <= 0;
-    const img = (product.images && product.images[0]) || null;
+    const img = (product.images && product.images[0]) ? getFileUrl(product.images[0]) : null;
 
     return (
         <Link

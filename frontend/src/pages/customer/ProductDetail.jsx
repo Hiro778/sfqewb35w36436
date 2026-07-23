@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Minus, Plus, ShoppingBag, MessageCircle, ChevronLeft } from "lucide-react";
-import { api, formatRupiah, computeEffectivePrice } from "@/lib/api";
+import { api, formatRupiah, computeEffectivePrice, getFileUrl } from "@/lib/api";
 import ClickSpark from "@/components/magic/ClickSpark";
 import Stack from "@/components/magic/Stack";
 import { useCart } from "@/contexts/CartContext";
@@ -55,7 +55,7 @@ export default function ProductDetail() {
     const effective = computeEffectivePrice(prod);
     const hasDiscount = prod.discount_price && prod.discount_price < prod.price;
     const outOfStock = prod.stock <= 0;
-    const images = prod.images && prod.images.length ? prod.images : [];
+    const images = prod.images && prod.images.length ? prod.images.map(getFileUrl) : [];
 
     const handleAdd = () => {
         if (outOfStock) return;

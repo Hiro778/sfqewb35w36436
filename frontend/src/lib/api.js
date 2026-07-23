@@ -7,6 +7,19 @@ export const api = axios.create({
     withCredentials: false,
 });
 
+/**
+ * Resolve stored image reference to a displayable URL.
+ * - If it's a full URL (http/https) or data: URI, return as-is.
+ * - If it looks like a storage path ("hazzeon-commerce/products/..."), serve via backend.
+ */
+export function getFileUrl(pathOrUrl) {
+    if (!pathOrUrl) return "";
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://") || pathOrUrl.startsWith("data:")) {
+        return pathOrUrl;
+    }
+    return `${API}/files/${pathOrUrl}`;
+}
+
 // Attach JWT token if present
 api.interceptors.request.use((cfg) => {
     const tok =

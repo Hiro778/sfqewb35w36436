@@ -4,6 +4,7 @@ import { Menu, X, ShoppingBag, User, LogOut } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import GooeyNav from "@/components/magic/GooeyNav";
 import MobileDock from "@/components/magic/MobileDock";
+import NotificationBell from "@/components/customer/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -44,6 +45,7 @@ export default function CustomerLayout() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {user && <NotificationBell />}
                         <Link
                             to="/cart"
                             data-testid="header-cart-link"

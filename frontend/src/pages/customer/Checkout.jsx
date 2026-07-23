@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { MessageCircle, Tag } from "lucide-react";
-import { api, formatApiErrorDetail, formatRupiah } from "@/lib/api";
+import { api, formatApiErrorDetail, formatRupiah, getFileUrl } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import ClickSpark from "@/components/magic/ClickSpark";
@@ -206,7 +206,7 @@ export default function Checkout() {
                                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-900 shrink-0">
                                         {i.image ? (
                                             <img
-                                                src={i.image}
+                                                src={getFileUrl(i.image)}
                                                 alt=""
                                                 className="w-full h-full object-cover"
                                             />

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Minus, Plus, X, ShoppingBag } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { formatRupiah } from "@/lib/api";
+import { formatRupiah, getFileUrl } from "@/lib/api";
 import ClickSpark from "@/components/magic/ClickSpark";
 
 export default function Cart() {
@@ -38,7 +38,7 @@ export default function Cart() {
                         >
                             <div className="w-24 h-24 rounded-xl overflow-hidden bg-zinc-900 shrink-0">
                                 {it.image ? (
-                                    <img src={it.image} alt="" className="w-full h-full object-cover" />
+                                    <img src={getFileUrl(it.image)} alt="" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full grid place-items-center text-zinc-700 font-display text-2xl">
                                         {it.name[0]}

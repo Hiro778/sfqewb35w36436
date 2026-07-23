@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { api, formatApiErrorDetail } from "@/lib/api";
+import { api, formatApiErrorDetail, getFileUrl } from "@/lib/api";
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "sonner";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Loader2 } from "lucide-react";
 
 export default function AdminSettings() {
     const { settings, refresh } = useSettings();
     const [form, setForm] = useState(null);
     const [busy, setBusy] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         if (settings) setForm({ ...settings });
@@ -15,16 +16,27 @@ export default function AdminSettings() {
 
     if (!form) return <div className="text-zinc-500">Memuat pengaturan...</div>;
 
-    const handleLogo = (e) => {
+    const handleLogo = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 500 * 1024) {
-            toast.error("Logo maks 500KB");
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("Logo maks 2MB");
             return;
         }
-        const reader = new FileReader();
-        reader.onload = () => setForm({ ...form, logo: reader.result });
-        reader.readAsDataURL(file);
+        setUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            const { data } = await api.post("/admin/upload", fd, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            setForm({ ...form, logo: data.path });
+            toast.success("Logo di-upload");
+        } catch (err) {
+            toast.error(formatApiErrorDetail(err.response?.data?.detail) || err.message);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const save = async (e) => {
@@ -110,7 +122,7 @@ export default function AdminSettings() {
                             {form.logo && (
                                 <div className="w-16 h-16 rounded-xl overflow-hidden bg-zinc-950 border border-white/10 relative">
                                     <img
-                                        src={form.logo}
+                                        src={getFileUrl(form.logo)}
                                         alt=""
                                         className="w-full h-full object-contain"
                                     />
@@ -124,12 +136,17 @@ export default function AdminSettings() {
                                 </div>
                             )}
                             <label className="inline-flex items-center gap-2 rounded-full border border-dashed border-white/20 px-4 py-2 text-sm cursor-pointer hover:bg-white/5">
-                                <Upload className="w-4 h-4" />
-                                Upload logo
+                                {uploading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Upload className="w-4 h-4" />
+                                )}
+                                {uploading ? "Uploading..." : "Upload logo"}
                                 <input
                                     type="file"
                                     accept="image/*"
                                     onChange={handleLogo}
+                                    disabled={uploading}
                                     className="hidden"
                                 />
                             </label>

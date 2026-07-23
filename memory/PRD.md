@@ -26,3 +26,13 @@ Build production-ready modern e-commerce for Indonesian SME (fashion). Customers
 - P2: PDF export button (currently uses browser print → save as PDF)
 - P2: CSV export for reports on Dashboard
 - P2: Order status changes trigger WhatsApp notification
+
+## Phase 2 (Feb 2026)
+- **Object Storage (Emergent)**: `/api/admin/upload` accepts multi-file uploads (max 5MB), returns storage paths; product & logo images now served via `/api/files/{path}` (7-day cache header). Replaced base64-in-Mongo entirely.
+- **Email (Resend)**: forgot-password now sends real branded HTML email with 1-hour reset link. `/reset-password?token=...` page added.
+- **In-App Notifications**: bell icon in customer header with unread badge, dropdown panel with mark-as-read. Auto-created on: order status change (pending → completed / cancelled) + invoice creation. Endpoints `GET /api/notifications`, `PUT /api/notifications/{id}/read`, `PUT /api/notifications/read-all`. Polls every 30s.
+
+## Remaining Backlog
+- P2: PDF export button (SKIPPED per user — browser print-to-PDF is sufficient)
+- P2: Domain verification for Resend (production email deliverability)
+- P3: Order tracking timeline UI in customer /orders

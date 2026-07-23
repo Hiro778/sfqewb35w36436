@@ -26,6 +26,7 @@ export default function AdminProductForm() {
     const [form, setForm] = useState(EMPTY);
     const [cats, setCats] = useState([]);
     const [busy, setBusy] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         api.get("/categories").then(({ data }) => {
@@ -54,20 +55,32 @@ export default function AdminProductForm() {
         // eslint-disable-next-line
     }, [id]);
 
-    const handleFile = (e) => {
+    const handleFile = async (e) => {
         const files = Array.from(e.target.files || []);
-        files.forEach((file) => {
-            if (file.size > 2 * 1024 * 1024) {
-                toast.error(`${file.name} > 2MB. Kompres dulu.`);
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => {
-                setForm((f) => ({ ...f, images: [...f.images, reader.result] }));
-            };
-            reader.readAsDataURL(file);
-        });
         e.target.value = "";
+        if (files.length === 0) return;
+        setUploading(true);
+        try {
+            for (const file of files) {
+                if (file.size > 5 * 1024 * 1024) {
+                    toast.error(`${file.name} > 5MB. Kompres dulu.`);
+                    continue;
+                }
+                const fd = new FormData();
+                fd.append("file", file);
+                try {
+                    const { data } = await api.post("/admin/upload", fd, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    });
+                    setForm((f) => ({ ...f, images: [...f.images, data.path] }));
+                } catch (err) {
+                    toast.error(`Gagal upload ${file.name}: ${formatApiErrorDetail(err.response?.data?.detail) || err.message}`);
+                }
+            }
+            toast.success("Foto berhasil di-upload");
+        } finally {
+            setUploading(false);
+        }
     };
 
     const removeImg = (idx) => {
@@ -256,7 +269,7 @@ export default function AdminProductForm() {
                                 key={i}
                                 className="relative aspect-square rounded-lg overflow-hidden border border-white/10 group"
                             >
-                                <img src={im} alt="" className="w-full h-full object-cover" />
+                                <img src={getFileUrl(im)} alt="" className="w-full h-full object-cover" />
                                 <button
                                     type="button"
                                     onClick={() => removeImg(i)}
@@ -268,20 +281,29 @@ export default function AdminProductForm() {
                         ))}
                         <label
                             data-testid="product-form-upload"
-                            className="aspect-square rounded-lg border border-dashed border-white/20 hover:border-brand-200 hover:bg-white/5 transition-colors grid place-items-center cursor-pointer text-zinc-500"
+                            className={`aspect-square rounded-lg border border-dashed transition-colors grid place-items-center cursor-pointer ${
+                                uploading
+                                    ? "border-brand-200 bg-brand-200/10 text-brand-200"
+                                    : "border-white/20 hover:border-brand-200 hover:bg-white/5 text-zinc-500"
+                            }`}
                         >
-                            <Upload className="w-5 h-5" />
+                            {uploading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <Upload className="w-5 h-5" />
+                            )}
                             <input
                                 type="file"
                                 accept="image/*"
                                 multiple
                                 onChange={handleFile}
+                                disabled={uploading}
                                 className="hidden"
                             />
                         </label>
                     </div>
                     <p className="text-xs text-zinc-500 mt-3">
-                        Format JPG/PNG/WebP. Maksimal 2MB per file. Foto pertama menjadi thumbnail.
+                        Format JPG/PNG/WebP. Maksimal 5MB per file. Foto pertama menjadi thumbnail. Disimpan ke object storage.
                     </p>
                 </div>
 

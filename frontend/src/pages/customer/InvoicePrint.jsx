@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { api, formatRupiah } from "@/lib/api";
+import { api, formatRupiah, getFileUrl } from "@/lib/api";
 
 export default function InvoicePrint() {
     const { id } = useParams();
@@ -25,7 +25,7 @@ export default function InvoicePrint() {
                         <div className="flex items-center gap-3">
                             {settings.logo ? (
                                 <img
-                                    src={settings.logo}
+                                    src={getFileUrl(settings.logo)}
                                     alt="logo"
                                     className="w-12 h-12 object-contain"
                                 />
