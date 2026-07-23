@@ -442,7 +442,8 @@ async def register(data: RegisterIn, response: Response):
 @api.post("/auth/login")
 async def login(data: LoginIn, request: Request):
     email = data.email.lower()
-    ident = f"{request.client.host}:{email}"
+    # Lockout by account (email) — resilient to k8s ingress rotating client IPs
+    ident = f"customer:{email}"
     await check_lockout(ident)
     user = await db.users.find_one({"email": email, "role": "customer"})
     if not user or not verify_password(data.password, user["password_hash"]):
@@ -497,7 +498,7 @@ async def forgot_password(data: ForgotIn):
                 "used": False,
             }
         )
-        log.info(f"[password reset] user={user['email']} token={token}")
+        # Token is stored in DB; delivery via email should be integrated by ops.
     return {"ok": True, "message": "Jika email terdaftar, link reset password akan dikirim."}
 
 
@@ -521,7 +522,8 @@ async def reset_password(data: ResetIn):
 # ==================================================================
 @api.post("/admin/login")
 async def admin_login(data: AdminLoginIn, request: Request):
-    ident = f"admin:{request.client.host}:{data.username}"
+    # Lockout by username — resilient to k8s ingress IP rotation
+    ident = f"admin:{data.username}"
     await check_lockout(ident)
     admin = await db.users.find_one({"role": "admin"})
     if not admin:
@@ -758,7 +760,28 @@ async def create_order(data: OrderIn, request: Request):
     except Exception:
         pass
 
-    subtotal = sum(i.price * i.quantity for i in data.items)
+    # SECURITY: re-fetch canonical product data from DB. Never trust client-supplied prices.
+    trusted_items: List[dict] = []
+    for i in data.items:
+        prod = await db.products.find_one({"id": i.product_id})
+        if not prod:
+            raise HTTPException(400, f"Produk {i.name} tidak ditemukan")
+        canonical_price = (
+            prod["discount_price"]
+            if prod.get("discount_price") and 0 < prod["discount_price"] < prod["price"]
+            else prod["price"]
+        )
+        trusted_items.append(
+            {
+                "product_id": prod["id"],
+                "name": prod["name"],
+                "price": float(canonical_price),
+                "quantity": int(i.quantity),
+                "image": (prod.get("images") or [""])[0] if prod.get("images") else "",
+            }
+        )
+
+    subtotal = sum(i["price"] * i["quantity"] for i in trusted_items)
     discount_amount = 0.0
     voucher_applied = None
 
@@ -796,7 +819,7 @@ async def create_order(data: OrderIn, request: Request):
         "customer_phone": data.customer_phone,
         "customer_address": data.customer_address,
         "notes": data.notes,
-        "items": [i.dict() for i in data.items],
+        "items": trusted_items,
         "subtotal": subtotal,
         "discount": discount_amount,
         "voucher_code": voucher_applied,
@@ -807,9 +830,9 @@ async def create_order(data: OrderIn, request: Request):
     }
     await db.orders.insert_one(doc)
 
-    # increment sold count
-    for i in data.items:
-        await db.products.update_one({"id": i.product_id}, {"$inc": {"sold_count": i.quantity}})
+    # increment sold count based on trusted items
+    for i in trusted_items:
+        await db.products.update_one({"id": i["product_id"]}, {"$inc": {"sold_count": i["quantity"]}})
 
     doc.pop("_id", None)
     return doc

@@ -132,6 +132,7 @@ export default function AdminInvoices() {
                                         <div className="inline-flex gap-1">
                                             <button
                                                 onClick={() => printInv(inv.id)}
+                                                data-testid={`admin-invoice-print-${inv.id}`}
                                                 className="p-2 rounded-lg hover:bg-white/10 text-zinc-300"
                                                 title="Print"
                                             >
@@ -139,6 +140,7 @@ export default function AdminInvoices() {
                                             </button>
                                             <button
                                                 onClick={() => sendWA(inv)}
+                                                data-testid={`admin-invoice-wa-${inv.id}`}
                                                 className="p-2 rounded-lg hover:bg-white/10 text-emerald-400"
                                                 title="Send WhatsApp"
                                             >
@@ -146,12 +148,14 @@ export default function AdminInvoices() {
                                             </button>
                                             <Link
                                                 to={`/admin/invoices/${inv.id}/edit`}
+                                                data-testid={`admin-invoice-edit-${inv.id}`}
                                                 className="p-2 rounded-lg hover:bg-white/10 text-zinc-300"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </Link>
                                             <button
                                                 onClick={() => del(inv.id)}
+                                                data-testid={`admin-invoice-delete-${inv.id}`}
                                                 className="p-2 rounded-lg hover:bg-red-500/20 text-red-400"
                                             >
                                                 <Trash2 className="w-4 h-4" />
