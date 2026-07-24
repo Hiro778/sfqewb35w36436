@@ -136,7 +136,7 @@ export default function ProductDetail() {
                     )}
                     {images.length >= 3 && (
                         <p className="text-center text-xs text-zinc-500 mt-4">
-                            Klik gambar untuk melihat foto berikutnya
+                            Geser atau tap kartu untuk foto berikutnya
                         </p>
                     )}
                 </div>
