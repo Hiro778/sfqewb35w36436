@@ -1,7 +1,31 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, CalendarIcon, X as XIcon } from "lucide-react";
 import { api, formatApiErrorDetail, formatRupiah } from "@/lib/api";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+
+function parseDateStr(s) {
+    if (!s) return undefined;
+    // s is "YYYY-MM-DD" — parse as local date (avoid TZ offset)
+    const [y, m, d] = s.split("-").map(Number);
+    if (!y || !m || !d) return undefined;
+    return new Date(y, m - 1, d);
+}
+
+function fmtDateStr(date) {
+    if (!date) return "";
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function fmtDateLabel(s) {
+    const d = parseDateStr(s);
+    if (!d) return "";
+    return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+}
 
 const EMPTY = {
     code: "",
@@ -211,12 +235,71 @@ export default function AdminDiscounts() {
                             onChange={(e) => setForm({ ...form, usage_limit: e.target.value })}
                             className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-white/10"
                         />
-                        <input
-                            type="date"
-                            value={form.expiry_date}
-                            onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-white/10"
-                        />
+                        <div>
+                            <label className="text-xs text-zinc-500 mb-1 block">
+                                Berakhir (opsional)
+                            </label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button
+                                        type="button"
+                                        data-testid="voucher-expiry-trigger"
+                                        className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-zinc-950 border border-white/10 text-sm hover:bg-zinc-900 transition-colors ${
+                                            form.expiry_date ? "text-white" : "text-zinc-500"
+                                        }`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <CalendarIcon className="w-4 h-4 text-brand-200" />
+                                            {form.expiry_date
+                                                ? fmtDateLabel(form.expiry_date)
+                                                : "Pilih tanggal (tanpa batas jika kosong)"}
+                                        </span>
+                                        {form.expiry_date && (
+                                            <span
+                                                role="button"
+                                                tabIndex={0}
+                                                aria-label="Hapus tanggal"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setForm({ ...form, expiry_date: "" });
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setForm({ ...form, expiry_date: "" });
+                                                    }
+                                                }}
+                                                className="text-zinc-400 hover:text-white p-1 -mr-1 rounded cursor-pointer"
+                                                data-testid="voucher-expiry-clear"
+                                            >
+                                                <XIcon className="w-3.5 h-3.5" />
+                                            </span>
+                                        )}
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                    align="start"
+                                    className="w-auto p-0 bg-zinc-900 border-white/10"
+                                    data-testid="voucher-expiry-calendar"
+                                >
+                                    <Calendar
+                                        mode="single"
+                                        selected={parseDateStr(form.expiry_date)}
+                                        onSelect={(d) =>
+                                            setForm({ ...form, expiry_date: fmtDateStr(d) })
+                                        }
+                                        disabled={(date) => {
+                                            const today = new Date();
+                                            today.setHours(0, 0, 0, 0);
+                                            return date < today;
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                         <label className="flex items-center gap-2 text-sm">
                             <input
                                 type="checkbox"
