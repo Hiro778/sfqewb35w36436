@@ -1,0 +1,99 @@
+{
+  "summary": "Regression test for WhatsApp URL normalization fix (bug: wa link 404'd due to messy phones with '+', spaces, hyphens producing 'api.whatsapp.com/resolve/?deeplink=...%2520' style URLs). Verified across ALL 4 frontend consumers (Home CTA, ProductDetail chat, AdminInvoices send, Checkout) plus backend /api/whatsapp/build with 5 messy-phone variants. 100% pass — every generated URL is a canonical https://wa.me/{digits-only-phone}?text={single-encoded} link with no %2520, no %250A, no api.whatsapp.com/resolve.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Home.jsx footer contact block",
+        "issues": [
+          "Footer displays 'Wa: ++62 882-8936-6448' (double '+') when settings.whatsapp_number itself already begins with '+'. The footer text seems to prepend a '+' unconditionally. The actual wa.me link ([data-testid=home-wa-cta]) is correct (normalized). Only the DISPLAY string is doubled. Cosmetic, not the bug being tested."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_whatsapp_regression.py",
+    "/app/test_reports/pytest/whatsapp_regression.xml"
+  ],
+  "action_items": [
+    "Optional cosmetic: In Home.jsx footer, don't prepend '+' to settings.whatsapp_number for display — either strip existing '+' first, or better: use a display formatter that normalizes then re-adds a single '+'. This is a MINOR display-only bug; the wa.me link is unaffected."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py normalize_phone() (~L1411) correctly strips all non-digits and handles Indonesian leading-0 -> 62 substitution. Uses urllib.parse.quote(msg, safe='') at L1450 for single-encoding — correct.",
+    "frontend/src/lib/api.js buildWhatsAppUrl() uses encodeURIComponent(message) exactly once and returns empty string when phone digits are missing — matches backend behavior. Guards against buildWhatsAppUrl with empty phone in all 4 consumers (early return + toast). Good.",
+    "All 4 consumers (Home.jsx, ProductDetail.jsx, AdminInvoices.jsx, Checkout.jsx) migrated to the shared helpers as claimed. No stragglers using api.whatsapp.com/resolve pattern remain. grep for 'api.whatsapp.com/resolve' returns zero hits in frontend/src.",
+    "Checkout flow correctly uses SETTINGS.whatsapp_number (STORE's WA) via server-side /whatsapp/build — customer's messy phone is only echoed in the message body, not used as target."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_whatsapp_regression.py (created)"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 tests in test_whatsapp_regression.py + all existing suite tests unaffected)",
+    "frontend": "100% (4/4 UI regression scenarios)"
+  },
+  "test_credentials": "After test cleanup: admin/1234 restored, first_setup_done=false. Settings.whatsapp_number restored to '6288211118394'. All ZZWA_-prefixed test data purged (products=1, orders=2, invoices=1, customers=1).",
+  "seed_data_creation": "None persisted. All test data (product ZZWA_TestProduct, invoice, orders, customer zzwacust_*) were cleaned in a final teardown step. Test admin user 'waadmin' was rolled back to default 'admin' with first_setup_done=false.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Admin state at end: admin/1234 first_setup_done=false (fresh). Settings.whatsapp_number = '6288211118394' (default). WhatsApp URL builder is fully verified — no need to re-test unless main agent modifies normalize_phone/normalizePhone/buildWhatsAppUrl. New regression suite /app/backend/tests/test_whatsapp_regression.py is idempotent (session-scoped admin_token fixture handles reset in setup+teardown). Run with: pytest -n 0 backend/tests/test_whatsapp_regression.py",
+  "detailed_test_evidence": {
+    "backend_pytest_results": {
+      "test_messy_phone_plus_spaces_hyphens": "PASS — '+62 882-8936-6448   ' -> https://wa.me/6288289366448?text=...",
+      "test_leading_zero_indonesia": "PASS — '0888-1234-5678' -> https://wa.me/6288812345678?text=...",
+      "test_plus_prefix_with_hyphens": "PASS — '+6288-2811-1839-4' -> https://wa.me/6288281118394?text=...",
+      "test_parens_and_spaces": "PASS — '(0812) 345 6789' -> https://wa.me/628123456789?text=...",
+      "test_pure_digits_with_spaces": "PASS — '628828111 8394' -> https://wa.me/6288281118394?text=...",
+      "test_message_is_single_encoded": "PASS — no %2520/%250A/%252A; unquote(text) == message; contains newlines and asterisks intact",
+      "test_wa_url_never_uses_broken_resolve_pattern": "PASS — no api.whatsapp.com/resolve or deeplink= substring for 3 messy phone variants"
+    },
+    "frontend_playwright_results": {
+      "home_wa_cta": {
+        "screen": "/",
+        "selector": "[data-testid=\"home-wa-cta\"]",
+        "captured_href": "https://wa.me/6288289366448",
+        "assertion_exact_match": "PASS (settings.whatsapp_number='+62 882-8936-6448' normalized to 6288289366448)"
+      },
+      "product_detail_wa_chat_btn": {
+        "screen": "/products/{slug}",
+        "selector": "[data-testid=\"wa-chat-btn\"]",
+        "intercepted_window_open_url": "https://wa.me/6288289366448?text=Halo%2C%20saya%20tertarik%20dengan%20produk%20*ZZWA_TestProduct*%20(Rp150.000).%20Apakah%20masih%20tersedia%3F",
+        "starts_with_expected": true,
+        "double_encoded_or_broken_host": false,
+        "assertion": "PASS"
+      },
+      "admin_invoice_wa_button": {
+        "screen": "/admin/invoices",
+        "selector": "[data-testid=\"admin-invoice-wa-<invoiceId>\"]",
+        "customer_phone_stored_as": "+62 882-8936-6448 (messy)",
+        "intercepted_window_open_url_prefix": "https://wa.me/6288289366448?text=Halo%20*ZZWA_Customer*%2C%0A%0ABerikut%20invoice%20pesanan%20Anda%3A%0A%0A%F0%9F%93%84%20*INV-...*",
+        "starts_with_expected": true,
+        "double_encoded_or_broken_host": false,
+        "assertion": "PASS"
+      },
+      "checkout_wa_btn": {
+        "screen": "/checkout (as authenticated customer)",
+        "selector": "[data-testid=\"checkout-wa-btn\"]",
+        "customer_phone_entered": "0888-1234-5678 (messy)",
+        "target_phone_source": "SETTINGS.whatsapp_number (STORE's WA) via POST /api/whatsapp/build — correct",
+        "intercepted_window_open_url_prefix": "https://wa.me/6288289366448?text=Halo%20%2AHazze%27On%20Commerce%2A%2C%20saya%20ingin%20memesan%3A%0A%0A%2AOrder%3A%2A%20ORD-...",
+        "decoded_body_contains_customer_phone_verbatim": "0888-1234-5678 (correctly displayed in body as-is)",
+        "order_created": "yes — order_number ORD-20260724-0004",
+        "starts_with_expected": true,
+        "double_encoded_or_broken_host": false,
+        "assertion": "PASS"
+      }
+    },
+    "bug_fix_confirmation": {
+      "old_broken_pattern": "https://api.whatsapp.com/resolve/?deeplink=https%3A%2F%2Fwa.me%2F%2B62%2520882-8936-6448%3Ftext%3D...",
+      "new_canonical_pattern": "https://wa.me/6288289366448?text=<single-encoded>",
+      "all_urls_checked": 4,
+      "all_urls_canonical": 4,
+      "grep_api_whatsapp_resolve_in_src": "0 hits"
+    }
+  }
+}

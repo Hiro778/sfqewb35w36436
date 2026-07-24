@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Minus, Plus, ShoppingBag, MessageCircle, ChevronLeft } from "lucide-react";
-import { api, formatRupiah, computeEffectivePrice, getFileUrl } from "@/lib/api";
+import { api, formatRupiah, computeEffectivePrice, getFileUrl, buildWhatsAppUrl } from "@/lib/api";
 import ClickSpark from "@/components/magic/ClickSpark";
 import Stack from "@/components/magic/Stack";
 import { useCart } from "@/contexts/CartContext";
@@ -71,10 +71,12 @@ export default function ProductDetail() {
     const chatWA = () => {
         if (!settings?.whatsapp_number) return;
         const msg = `Halo, saya tertarik dengan produk *${prod.name}* (${formatRupiah(effective)}). Apakah masih tersedia?`;
-        window.open(
-            `https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(msg)}`,
-            "_blank"
-        );
+        const waUrl = buildWhatsAppUrl(settings.whatsapp_number, msg);
+        if (!waUrl) {
+            toast.error("Nomor WhatsApp toko belum diatur.");
+            return;
+        }
+        window.open(waUrl, "_blank");
     };
 
     return (

@@ -63,3 +63,26 @@ export function computeEffectivePrice(product) {
     const p = Number(product.price || 0);
     return dp > 0 && dp < p ? dp : p;
 }
+
+/**
+ * Normalize phone to digits-only for WhatsApp URL.
+ * Strips '+', spaces, hyphens, dots, parens.
+ * Converts leading '0' to '62' (Indonesia convention).
+ */
+export function normalizePhone(raw) {
+    if (!raw) return "";
+    let d = String(raw).replace(/\D/g, "");
+    if (d.startsWith("0")) d = "62" + d.slice(1);
+    return d;
+}
+
+/**
+ * Build a canonical WhatsApp deep link. Message is encoded exactly once.
+ * Returns "" if no phone digits present.
+ */
+export function buildWhatsAppUrl(phoneRaw, message) {
+    const phone = normalizePhone(phoneRaw);
+    if (!phone) return "";
+    const text = message ? `?text=${encodeURIComponent(message)}` : "";
+    return `https://wa.me/${phone}${text}`;
+}

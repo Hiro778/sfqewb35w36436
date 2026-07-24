@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Printer, MessageCircle, Edit2, Trash2 } from "lucide-react";
-import { api, formatRupiah, formatApiErrorDetail } from "@/lib/api";
+import { api, formatRupiah, formatApiErrorDetail, buildWhatsAppUrl } from "@/lib/api";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 
@@ -33,7 +33,12 @@ export default function AdminInvoices() {
     const sendWA = (inv) => {
         const url = window.location.origin + `/invoice/${inv.id}/print`;
         const msg = `Halo *${inv.customer_name}*,\n\nBerikut invoice pesanan Anda:\n\n📄 *${inv.invoice_number}*\nTotal: ${formatRupiah(inv.grand_total)}\nStatus: ${inv.payment_status}\n\nLink invoice: ${url}\n\nTerima kasih! 🙏`;
-        window.open(`https://wa.me/${inv.customer_phone}?text=${encodeURIComponent(msg)}`, "_blank");
+        const waUrl = buildWhatsAppUrl(inv.customer_phone, msg);
+        if (!waUrl) {
+            toast.error("Nomor WhatsApp customer tidak valid.");
+            return;
+        }
+        window.open(waUrl, "_blank");
     };
 
     const del = async (id) => {

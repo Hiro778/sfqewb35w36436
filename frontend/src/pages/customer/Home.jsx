@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles, Truck, ShieldCheck, MessageCircle } from "lucide-
 import { api, formatRupiah, computeEffectivePrice } from "@/lib/api";
 import { useSettings } from "@/contexts/SettingsContext";
 import ProductCard from "@/components/customer/ProductCard";
+import { buildWhatsAppUrl } from "@/lib/api";
 
 const HERO_IMG =
     "https://images.unsplash.com/photo-1720022785516-9653ead7180c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxmYXNoaW9uJTIwbW9kZWwlMjBkYXJrJTIwYWVzdGhldGljfGVufDB8fHx8MTc4NDgwNDY0Nnww&ixlib=rb-4.1.0&q=85";
@@ -211,7 +212,7 @@ export default function Home() {
                     </p>
                     {settings?.whatsapp_number && (
                         <a
-                            href={`https://wa.me/${settings.whatsapp_number}`}
+                            href={buildWhatsAppUrl(settings.whatsapp_number)}
                             target="_blank"
                             rel="noopener noreferrer"
                             data-testid="home-wa-cta"

@@ -1408,12 +1408,23 @@ async def dashboard(user: dict = Depends(require_admin)):
 # ==================================================================
 # WHATSAPP MESSAGE BUILDER
 # ==================================================================
+def normalize_phone(raw: str) -> str:
+    """Return digits-only phone. Convert leading '0' to '62' (Indonesia).
+    Removes '+', spaces, hyphens, parentheses, dots, etc."""
+    if not raw:
+        return ""
+    digits = re.sub(r"\D", "", raw)
+    if digits.startswith("0"):
+        digits = "62" + digits[1:]
+    return digits
+
+
 @api.post("/whatsapp/build")
 async def build_wa_message(body: dict):
     """Given order data + settings, produce the wa.me url."""
     settings = await db.settings.find_one({"id": "global"}, {"_id": 0})
     template = settings.get("wa_message_template") or DEFAULT_WA_TEMPLATE
-    wa_number = settings.get("whatsapp_number") or ""
+    wa_number = normalize_phone(settings.get("whatsapp_number") or "")
 
     def fmt_currency(v: float) -> str:
         return "Rp" + f"{int(v):,}".replace(",", ".")
@@ -1436,7 +1447,7 @@ async def build_wa_message(body: dict):
         notes=body.get("notes") or "-",
     )
     from urllib.parse import quote
-    return {"wa_url": f"https://wa.me/{wa_number}?text={quote(msg)}", "message": msg}
+    return {"wa_url": f"https://wa.me/{wa_number}?text={quote(msg, safe='')}", "message": msg}
 
 
 # ==================================================================
