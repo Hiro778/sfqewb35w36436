@@ -215,7 +215,7 @@ export default function CustomerLayout() {
                             Kontak
                         </p>
                         <p className="text-sm text-zinc-300">
-                            WA: +{settings?.whatsapp_number || "-"}
+                            WA: +{(settings?.whatsapp_number || "").replace(/^\+/, "") || "-"}
                         </p>
                         <p className="text-sm text-zinc-400">{settings?.email || ""}</p>
                         <p className="text-sm text-zinc-400 mt-1">{settings?.address || ""}</p>
