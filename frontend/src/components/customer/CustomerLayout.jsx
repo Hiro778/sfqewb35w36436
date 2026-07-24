@@ -8,6 +8,7 @@ import NotificationBell from "@/components/customer/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import { getFileUrl } from "@/lib/api";
 
 const NAV_ITEMS = [
     { label: "Home", to: "/" },
@@ -32,9 +33,19 @@ export default function CustomerLayout() {
             <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-950/70 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-8 py-4">
                     <Link to="/" data-testid="logo-link" className="flex items-center gap-2">
-                        <span className="w-8 h-8 rounded-full bg-brand-200 grid place-items-center text-zinc-950 font-display font-bold text-sm">
-                            H
-                        </span>
+                        {settings?.logo ? (
+                            <span className="w-9 h-9 rounded-full overflow-hidden bg-zinc-900 border border-white/10 grid place-items-center">
+                                <img
+                                    src={getFileUrl(settings.logo)}
+                                    alt={settings?.business_name || "logo"}
+                                    className="w-full h-full object-cover"
+                                />
+                            </span>
+                        ) : (
+                            <span className="w-8 h-8 rounded-full bg-brand-200 grid place-items-center text-zinc-950 font-display font-bold text-sm">
+                                {(settings?.business_name || "H").trim().charAt(0).toUpperCase()}
+                            </span>
+                        )}
                         <span className="font-display text-xl tracking-tight">
                             {settings?.business_name || "Hazze'On"}
                         </span>
@@ -198,9 +209,19 @@ export default function CustomerLayout() {
                 <div className="max-w-7xl mx-auto grid gap-10 md:grid-cols-4">
                     <div className="md:col-span-2">
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="w-8 h-8 rounded-full bg-brand-200 grid place-items-center text-zinc-950 font-display font-bold text-sm">
-                                H
-                            </span>
+                            {settings?.logo ? (
+                                <span className="w-9 h-9 rounded-full overflow-hidden bg-zinc-900 border border-white/10 grid place-items-center">
+                                    <img
+                                        src={getFileUrl(settings.logo)}
+                                        alt={settings?.business_name || "logo"}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </span>
+                            ) : (
+                                <span className="w-8 h-8 rounded-full bg-brand-200 grid place-items-center text-zinc-950 font-display font-bold text-sm">
+                                    {(settings?.business_name || "H").trim().charAt(0).toUpperCase()}
+                                </span>
+                            )}
                             <span className="font-display text-xl">
                                 {settings?.business_name || "Hazze'On Commerce"}
                             </span>

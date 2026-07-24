@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
+import { getFileUrl } from "@/lib/api";
 
 const NAV = [
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -30,6 +32,7 @@ const NAV = [
 
 export default function AdminLayout() {
     const { admin, adminLogout } = useAuth();
+    const { settings } = useSettings();
     const nav = useNavigate();
     const [mobile, setMobile] = useState(false);
 
@@ -47,12 +50,24 @@ export default function AdminLayout() {
                 }`}
             >
                 <div className="flex items-center justify-between p-6">
-                    <div className="flex items-center gap-2">
-                        <span className="w-8 h-8 rounded-full bg-brand-200 grid place-items-center text-zinc-950 font-display font-bold text-sm">
-                            H
-                        </span>
+                    <div className="flex items-center gap-2" data-testid="admin-sidebar-logo">
+                        {settings?.logo ? (
+                            <span className="w-9 h-9 rounded-full overflow-hidden bg-zinc-900 border border-white/10 grid place-items-center">
+                                <img
+                                    src={getFileUrl(settings.logo)}
+                                    alt={settings?.business_name || "logo"}
+                                    className="w-full h-full object-cover"
+                                />
+                            </span>
+                        ) : (
+                            <span className="w-8 h-8 rounded-full bg-brand-200 grid place-items-center text-zinc-950 font-display font-bold text-sm">
+                                {(settings?.business_name || "H").trim().charAt(0).toUpperCase()}
+                            </span>
+                        )}
                         <div>
-                            <div className="font-display text-sm leading-none">Hazze'On</div>
+                            <div className="font-display text-sm leading-none">
+                                {settings?.business_name || "Hazze'On"}
+                            </div>
                             <div className="text-[10px] tracking-[0.2em] uppercase text-zinc-500">
                                 Admin
                             </div>
