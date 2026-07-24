@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { X, Upload, ChevronLeft } from "lucide-react";
-import { api, formatApiErrorDetail } from "@/lib/api";
+import { X, Upload, ChevronLeft, Loader2 } from "lucide-react";
+import { api, formatApiErrorDetail, getFileUrl } from "@/lib/api";
 import { toast } from "sonner";
 import ClickSpark from "@/components/magic/ClickSpark";
 
