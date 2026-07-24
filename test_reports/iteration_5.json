@@ -1,0 +1,24 @@
+{
+  "summary": "Retest of Stack.jsx desktop-drag double-fire fix (useRef didDragRef guard set in onDragStart, checked in onTap, cleared in onDragEnd via 50ms setTimeout). ALL requested test cases PASS: (1) Desktop 3-drag round-trip on 3-image stack — each drag shifts by exactly 1, round-trip restores initial image. (2) Isolated tap cycles by exactly 1. (3) Mixed sequence (drag→tap→drag→tap) — each of 4 actions shifts by exactly 1. (4) Mobile viewport (390x844) single drag shifts by 1. (5) Grep verification of Stack.jsx: useRef, didDragRef, onDragStart, and didDragRef.current guard in onTap ALL present. Iteration_4's HIGH bug is FIXED.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix is minimal and correct: useRef flag set in onDragStart, checked-and-bailed in onTap, cleared in a 50ms setTimeout after onDragEnd — matches the exact recommendation from iteration_4. No unintended side-effects observed.",
+    "The 50ms clearing window is long enough for framer-motion's late onTap after mouse drag but short enough that subsequent legit taps register (validated in mixed sequence test — tap immediately after a drag still fires exactly once).",
+    "Optional (LOW, unchanged from iteration_4): Rotation is deterministic and visible (~4-5 degrees per screenshot) but resting computed transform reads ~0.3 degrees due to framer spring interpolation sampling; purely cosmetic, not a functional issue."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only retest)", "frontend": "100% (all 5 requested checks pass)"},
+  "test_credentials": "Admin state confirmed preserved after teardown: username=admin, password=1234, first_setup_done=false. No credentials modified.",
+  "seed_data_creation": "Created one test product via POST /api/admin/products: name='HZ_RETEST_5_DragFix', slug='hz-retest-5-dragfix-33990b', id=13cef5a9-2ec2-45f6-92fb-1f4807250d2c, 3 picsum image URLs (hz-retest-1/2/3). DELETED at teardown via DELETE /api/admin/products/{id} (HTTP 200 ok:true). Note: review request mentioned URL '/products/instant-website-145' which appears to be a typo referring to the deployment slug — actual product slug used was 'hz-retest-5-dragfix-33990b' with the exact 3 required image URLs.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Stack.jsx drag/tap double-fire bug from iteration_4 is FIXED. Empirical evidence: fresh page order=[1,2,3], after 1 desktop drag → [2,3,1] (shift by exactly 1), after 3 drags → [1,2,3] (round-trip restored). Tap cycles by 1 both isolated and immediately after a drag. Mobile drag cycles by 1. All test data cleaned up. Admin creds admin/1234 first_setup_done=false ready for next iteration.",
+  "rca of the issue": "N/A — iteration_4 RCA correctly identified framer-motion's onTap firing after onDragEnd on desktop mouse. The applied fix (useRef didDragRef guard) resolves the double-fire and validated against 5 empirical criteria."
+}

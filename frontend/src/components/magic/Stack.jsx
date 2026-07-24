@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 
 /**
@@ -19,6 +19,7 @@ export default function Stack({
     dragVelocityThreshold = 400,
 }) {
     const [order, setOrder] = useState(images.map((_, i) => i));
+    const didDragRef = useRef(false);
 
     const sendToBack = () => {
         setOrder((prev) => {
@@ -61,6 +62,9 @@ export default function Stack({
                         dragElastic={0.7}
                         dragMomentum={false}
                         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                        onDragStart={() => {
+                            didDragRef.current = true;
+                        }}
                         onDragEnd={(_, info) => {
                             const strong =
                                 Math.abs(info.offset.x) > dragDistanceThreshold ||
@@ -68,9 +72,13 @@ export default function Stack({
                                 Math.abs(info.velocity.x) > dragVelocityThreshold ||
                                 Math.abs(info.velocity.y) > dragVelocityThreshold;
                             if (strong) sendToBack();
+                            // Guard onTap that fires right after this on desktop mouse
+                            setTimeout(() => {
+                                didDragRef.current = false;
+                            }, 50);
                         }}
                         onTap={() => {
-                            // onTap fires ONLY on a true tap (no drag). Safe from double-fire.
+                            if (didDragRef.current) return;
                             if (isTop && sendToBackOnClick) sendToBack();
                         }}
                         animate={{
