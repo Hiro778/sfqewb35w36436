@@ -15,10 +15,16 @@ export default function ProductCard({ product }) {
             className="group block"
         >
             <motion.div
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.25 }}
-                className="relative h-[340px] sm:h-[420px] lg:h-[520px] rounded-2xl overflow-hidden border border-white/10 bg-zinc-900"
-            >
+                whileHover={{
+                    y: -8,
+                    scale: 1.015
+                 }}
+                 transition={{
+                     duration: 0.45,
+                     ease: [0.22, 1, 0.36, 1]
+                 }}
+                 className="relative h-[340px] sm:h-[420px] lg:h-[520px] rounded-2xl overflow-hidden border border-white/10 bg-zinc-900 transition-all duration-500 group-hover:shadow-2xl group-hover:shadow-purple-500/20 cursor-pointer"
+        >
                 {img ? (
                     <img
                         src={img}
