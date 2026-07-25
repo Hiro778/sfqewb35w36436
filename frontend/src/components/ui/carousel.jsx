@@ -291,7 +291,7 @@ const CarouselItem = React.forwardRef(({ className, ...props }, ref) => {
     } catch (e) {
       setIndex(null)
     }
-  }, [elRef.current, props.children])
+  }, [props.children])
 
   // Determine whether this slide is active
   const isActive = typeof index === "number" && selectedIndex === index
