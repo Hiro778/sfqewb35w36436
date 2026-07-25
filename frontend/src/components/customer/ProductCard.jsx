@@ -17,7 +17,7 @@ export default function ProductCard({ product }) {
             <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.25 }}
-                className="relative aspect-[4/5] rounded-2xl overflow-hidden border border-white/10 bg-zinc-900"
+                className="relative h-[340px] sm:h-[420px] lg:h-[520px] rounded-2xl overflow-hidden border border-white/10 bg-zinc-900"
             >
                 {img ? (
                     <img
