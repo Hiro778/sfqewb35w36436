@@ -30,7 +30,7 @@ export default function ProductCard({ product }) {
                         src={img}
                         alt={product.name}
                         loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
                     />
                 ) : (
                     <div className="w-full h-full grid place-items-center text-zinc-700 font-display text-4xl">
