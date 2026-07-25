@@ -7,14 +7,17 @@ import { useSettings } from "@/contexts/SettingsContext";
 import ProductCard from "@/components/customer/ProductCard";
 import { buildWhatsAppUrl } from "@/lib/api";
 
+// New carousel imports
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+
 const HERO_IMG =
-    "https://images.unsplash.com/photo-1720022785516-9653ead7180c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxmYXNoaW9uJTIwbW9kZWwlMjBkYXJrJTIwYWVzdGhldGljfGVufDB8fHx8MTc4NDgwNDY0Nnww&ixlib=rb-4.1.0&q=85";
+    "https://images.unsplash.com/photo-1720022785516-9653ead7180c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxmYXNoaW9uJTIwbW9kZWwlMjBkYXJrJTIwYWVzdGhldGljfGVufDB8fHx8MTc4NDgwN...";
 
 const CATEGORY_IMAGES = {
     Baju: "https://images.pexels.com/photos/14867670/pexels-photo-14867670.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     Celana: "https://images.pexels.com/photos/1598507/pexels-photo-1598507.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     Aksesoris:
-        "https://images.unsplash.com/photo-1635462684825-3621c1df5403?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBhY2Nlc3NvcmllcyUyMGRhcmt8ZW58MHx8fHwxNzg0ODA0NjQ2fDA&ixlib=rb-4.1.0&q=85",
+        "https://images.unsplash.com/photo-1635462684825-3621c1df5403?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBhY2Nlc3NvcmllcyUyMGRhcmt8ZW58MHx8fHwxNzg0ODA0NjQ2f...",
     Sepatu: "https://images.unsplash.com/photo-1519415510236-718bdfcd89c8?auto=format&fit=crop&w=940&q=80",
     Tas: "https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&w=940&q=80",
     "Jaket & Outer":
@@ -173,7 +176,7 @@ export default function Home() {
                             Limited Offer
                         </p>
                         <h3 className="font-display text-3xl md:text-4xl mt-2 max-w-xl">
-                            Selected pieces at{" "}
+                            Selected pieces at {" "}
                             <span className="italic text-brand-200">up to 40% off</span>
                         </h3>
                         <Link
@@ -243,7 +246,25 @@ function ProductRow({ title, sub, items }) {
                     View all →
                 </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+
+            {/* Mobile: carousel */}
+            <div className="md:hidden">
+                <Carousel className="w-full">
+                    <CarouselContent>
+                        {items.slice(0, 8).map((p) => (
+                            <CarouselItem key={p.id} className="px-0">
+                                <ProductCard product={p} />
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+
+                    <CarouselPrevious />
+                    <CarouselNext />
+                </Carousel>
+            </div>
+
+            {/* Desktop: keep existing grid unchanged */}
+            <div className="hidden md:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                 {items.slice(0, 8).map((p) => (
                     <ProductCard key={p.id} product={p} />
                 ))}
