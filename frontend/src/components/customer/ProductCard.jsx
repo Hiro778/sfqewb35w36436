@@ -24,7 +24,7 @@ export default function ProductCard({ product }) {
                      ease: [0.22, 1, 0.36, 1]
                  }}
                  className="relative h-[340px] sm:h-[420px] lg:h-[520px] rounded-2xl overflow-hidden border border-white/10 bg-zinc-900 transition-all duration-500 group-hover:shadow-2xl group-hover:shadow-purple-500/20 cursor-pointer"
-        >
+                >
                 {img ? (
                     <img
                         src={img}
